@@ -20,20 +20,20 @@ export default class MyObsidianPlugin extends Plugin {
 		this.registerMarkdownCodeBlockProcessor(
 			"my-obsidian-plugin",
 			(s, e, i) => {
-				let data = loadData(s);
+				console.log(s);
 				e.empty();
 				const root = createRoot(e);
 				root.render(
 					<React.StrictMode>
 						<App
-							data={data}
+							data={s}
 							getSectionInfo={() => i.getSectionInfo(e)}
 							settings={this.settings}
 							app={this.app}
 						/>
-					</React.StrictMode>
+					</React.StrictMode>,
 				);
-			}
+			},
 		);
 
 		this.addCommand({
@@ -49,7 +49,7 @@ export default class MyObsidianPlugin extends Plugin {
 		this.settings = Object.assign(
 			{},
 			defaultSettings,
-			await this.loadData()
+			await this.loadData(),
 		);
 	}
 
