@@ -23533,8 +23533,8 @@ var defaultSettings = {
 // src/settings-tab.ts
 var import_obsidian = require("obsidian");
 var MyObsidianPluginSettingsTab = class extends import_obsidian.PluginSettingTab {
-  constructor(app, plugin) {
-    super(app, plugin);
+  constructor(app2, plugin) {
+    super(app2, plugin);
     this.plugin = plugin;
   }
   display() {
@@ -23566,18 +23566,28 @@ var MyObsidianPluginSettingsTab = class extends import_obsidian.PluginSettingTab
 // src/components/App.tsx
 var import_react = __toESM(require_react());
 var App2 = (props) => {
-  const { data, getSectionInfo, settings, app } = props;
+  const { data, getSectionInfo, settings, app: app2, dependenciesLoaded } = props;
   console.log(props);
-  console.log(data);
-  return /* @__PURE__ */ import_react.default.createElement("div", { className: "", id: "my-obsidian-plugin" }, /* @__PURE__ */ import_react.default.createElement("div", { className: "flex flex-col gap-5" }, /* @__PURE__ */ import_react.default.createElement("div", { className: "border bg-black p-10 rounded-sm" }, data), /* @__PURE__ */ import_react.default.createElement("button", { className: "bg-red-500 rounded-md hover:bg-red-200 w-fit" }, "click me"), /* @__PURE__ */ import_react.default.createElement("button", { className: "w-fit" }, "default style button")));
+  console.log(dependenciesLoaded);
+  if (!dependenciesLoaded) {
+    return /* @__PURE__ */ import_react.default.createElement("div", { id: "twcss" }, /* @__PURE__ */ import_react.default.createElement("div", { className: "rounded-md border-solid border-[var(--text-error)] p-4" }, /* @__PURE__ */ import_react.default.createElement("h3", { className: "mt-0" }, "Error"), /* @__PURE__ */ import_react.default.createElement("div", null, "Failed to load dependencies!"), /* @__PURE__ */ import_react.default.createElement("div", null, "Plugins required: ", /* @__PURE__ */ import_react.default.createElement("a", { href: "/" }, "Dataview"))));
+  }
+  return /* @__PURE__ */ import_react.default.createElement("div", { className: "", id: "my-obsidian-plugin" }, /* @__PURE__ */ import_react.default.createElement("div", { className: "flex flex-col gap-5" }, /* @__PURE__ */ import_react.default.createElement("div", { className: "rounded-sm border bg-black p-10" }, data), /* @__PURE__ */ import_react.default.createElement("button", { className: "w-fit rounded-md bg-red-500 hover:bg-red-200" }, "click meee"), /* @__PURE__ */ import_react.default.createElement("button", { className: "w-fit" }, "default style button")));
 };
 var App_default = App2;
 
 // src/main.tsx
 var MyObsidianPlugin = class extends import_obsidian2.Plugin {
+  constructor() {
+    super(...arguments);
+    this.dependenciesLoaded = false;
+  }
   async onload() {
     await this.loadSettings();
     this.addSettingTab(new MyObsidianPluginSettingsTab(this.app, this));
+    app.workspace.onLayoutReady(async () => {
+      this.dependenciesLoaded = await this.loadDependencies();
+    });
     this.registerMarkdownCodeBlockProcessor(
       "my-obsidian-plugin",
       (s, e, i) => {
@@ -23591,7 +23601,8 @@ var MyObsidianPlugin = class extends import_obsidian2.Plugin {
               data: s,
               getSectionInfo: () => i.getSectionInfo(e),
               settings: this.settings,
-              app: this.app
+              app: this.app,
+              dependenciesLoaded: this.dependenciesLoaded
             }
           ))
         );
@@ -23611,6 +23622,24 @@ var MyObsidianPlugin = class extends import_obsidian2.Plugin {
       defaultSettings,
       await this.loadData()
     );
+  }
+  /**
+   * Loads the dependencies (plugins) that your plugin requires
+   * @returns true if successful, false if fail
+   */
+  async loadDependencies() {
+    const noticeSpan = document.createElement("span");
+    noticeSpan.innerHTML = 'You must have <a href="/">Dataview</a> installed and enabled!';
+    const docFrag = new DocumentFragment();
+    docFrag.append(noticeSpan);
+    const DATAVIEW = "dataview";
+    const plugins = app.plugins;
+    if (!plugins.enabledPlugins.has(DATAVIEW)) {
+      new import_obsidian2.Notice(docFrag);
+      return false;
+    }
+    await plugins.loadPlugin("dataview");
+    return true;
   }
   async saveSettings() {
     await this.saveData(this.settings);

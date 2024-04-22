@@ -1,4 +1,4 @@
-import { Plugin } from "obsidian";
+import { Notice, Plugin } from "obsidian";
 
 import React from "react";
 import { createRoot } from "react-dom/client";
@@ -11,11 +11,16 @@ import App from "@/components/App";
 
 export default class MyObsidianPlugin extends Plugin {
 	settings: TSettings;
+	dependenciesLoaded: boolean = false;
 
 	async onload(): Promise<void> {
 		await this.loadSettings();
 
 		this.addSettingTab(new MyObsidianPluginSettingsTab(this.app, this));
+
+		app.workspace.onLayoutReady(async () => {
+			this.dependenciesLoaded = await this.loadDependencies();
+		});
 
 		this.registerMarkdownCodeBlockProcessor(
 			"my-obsidian-plugin",
@@ -30,6 +35,7 @@ export default class MyObsidianPlugin extends Plugin {
 							getSectionInfo={() => i.getSectionInfo(e)}
 							settings={this.settings}
 							app={this.app}
+							dependenciesLoaded={this.dependenciesLoaded}
 						/>
 					</React.StrictMode>,
 				);
@@ -51,6 +57,28 @@ export default class MyObsidianPlugin extends Plugin {
 			defaultSettings,
 			await this.loadData(),
 		);
+	}
+
+	/**
+	 * Loads the dependencies (plugins) that your plugin requires
+	 * @returns true if successful, false if fail
+	 */
+	async loadDependencies() {
+		const noticeSpan = document.createElement("span");
+		noticeSpan.innerHTML =
+			'You must have <a href="/">Dataview</a> installed and enabled!';
+		const docFrag = new DocumentFragment();
+		docFrag.append(noticeSpan);
+		const DATAVIEW = "dataview";
+		// @ts-ignore
+		const plugins = app.plugins;
+		if (!plugins.enabledPlugins.has(DATAVIEW)) {
+			new Notice(docFrag);
+			return false;
+		}
+		await plugins.loadPlugin("dataview");
+
+		return true;
 	}
 
 	async saveSettings() {
